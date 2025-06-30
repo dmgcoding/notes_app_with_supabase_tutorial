@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:notes_with_supabase/pages/auth.dart';
 import 'package:notes_with_supabase/pages/notes.dart';
+import 'package:notes_with_supabase/repos/auth_repo.dart';
+import 'package:notes_with_supabase/repos/notes_repo.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 Future<void> main() async {
@@ -13,17 +16,43 @@ Future<void> main() async {
     anonKey: supabaseKey,
   );
 
-  runApp(MyApp());
+  final authRepo = AuthRepo(supabase);
+  final notesRepo = NotesRepo(supabase);
+
+  runApp(MyApp(supabase: supabase, authRepo: authRepo, notesRepo: notesRepo));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({
+    required this.supabase,
+    required this.authRepo,
+    required this.notesRepo,
+    super.key,
+  });
+  final Supabase supabase;
+  final AuthRepo authRepo;
+  final NotesRepo notesRepo;
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: NotesPage(),
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider<AuthRepo>.value(value: authRepo),
+        RepositoryProvider<NotesRepo>.value(value: notesRepo),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: StreamBuilder(
+          stream: supabase.client.auth.onAuthStateChange,
+          builder: (context, snap) {
+            if (snap.data?.session != null) {
+              return NotesPage();
+            }
+
+            return AuthPage();
+          },
+        ),
+      ),
     );
   }
 }
