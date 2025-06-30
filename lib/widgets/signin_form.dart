@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:notes_with_supabase/repos/auth_repo.dart';
 import 'package:notes_with_supabase/widgets/btn.dart';
 
 class SigninForm extends StatefulWidget {
@@ -17,6 +19,24 @@ class _SigninFormState extends State<SigninForm> {
     emailCtrl.dispose();
     pwdCtrl.dispose();
     super.dispose();
+  }
+
+  void signin() async {
+    if (emailCtrl.text.isEmpty | pwdCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("email or password can't be empty")),
+      );
+      return;
+    }
+
+    try {
+      final authRepo = context.read<AuthRepo>();
+      await authRepo.signin(emailCtrl.text, pwdCtrl.text);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   @override
@@ -66,7 +86,9 @@ class _SigninFormState extends State<SigninForm> {
           ),
         ),
         const SizedBox(height: 30),
-        Center(child: CustomButton(text: 'Sign In')),
+        Center(
+          child: CustomButton(text: 'Sign In', ontap: signin),
+        ),
       ],
     );
   }

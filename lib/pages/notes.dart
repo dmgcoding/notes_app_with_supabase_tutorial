@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:notes_with_supabase/pages/add_note.dart';
+import 'package:notes_with_supabase/repos/auth_repo.dart';
+import 'package:notes_with_supabase/repos/notes_repo.dart';
 import 'package:notes_with_supabase/widgets/note_card.dart';
 
 class NotesPage extends StatefulWidget {
@@ -29,6 +32,14 @@ class _NotesPageState extends State<NotesPage> {
     },
   ];
 
+  late final Stream<List<Map<String, dynamic>>> stream;
+
+  @override
+  void initState() {
+    stream = context.read<NotesRepo>().getNoteStream();
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,31 +57,60 @@ class _NotesPageState extends State<NotesPage> {
         child: Column(
           children: [
             const SizedBox(height: 50),
-            const Text(
-              'My Notes',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  flex: 4,
+                  child: Center(
+                    child: const Text(
+                      'My Notes',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => context.read<AuthRepo>().signout(),
+                  icon: Icon(Icons.logout, color: Colors.white),
+                ),
+              ],
             ),
             const SizedBox(height: 0),
             Expanded(
-              child: notes.isEmpty
-                  ? const Center(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: stream,
+                builder: (context, snap) {
+                  if (snap.hasError) {
+                    return const Center(
+                      child: Text(
+                        'some error occured!',
+                        style: TextStyle(fontSize: 16, color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                  if ((snap.data ?? []).isEmpty) {
+                    return const Center(
                       child: Text(
                         'No notes yet. Tap the + button to add one!',
                         style: TextStyle(fontSize: 16, color: Colors.white70),
                         textAlign: TextAlign.center,
                       ),
-                    )
-                  : ListView.builder(
-                      itemCount: notes.length,
-                      itemBuilder: (context, index) {
-                        final note = notes[index];
-                        return NoteCard(note: note);
-                      },
-                    ),
+                    );
+                  }
+                  return ListView.builder(
+                    itemCount: snap.data?.length,
+                    itemBuilder: (context, index) {
+                      final note = snap.data![index];
+                      return NoteCard(note: note);
+                    },
+                  );
+                },
+              ),
             ),
           ],
         ),
