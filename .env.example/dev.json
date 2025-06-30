@@ -1,0 +1,4 @@
+{
+    "SUPABASE_URL": "get this from the supabase dashboard",
+    "SUPABASE_KEY": "get this from the supabase dashboard"
+}
